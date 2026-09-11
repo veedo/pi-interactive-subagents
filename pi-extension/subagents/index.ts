@@ -518,6 +518,11 @@ interface RunningSubagent {
 /** All currently running subagents, keyed by id. */
 const runningSubagents = new Map<string, RunningSubagent>();
 
+/**
+ * Synchronous counter of subagents using the local model (llamacpp/).
+ * Incremented before any async work in launchSubagent so parallel tool calls
+ * see the correct count. Decremented when a subagent finishes.
+ */
 // ── Widget management ──
 
 /** Latest ExtensionContext from session_start, used for widget updates. */
@@ -939,7 +944,9 @@ async function launchSubagent(
   const id = Math.random().toString(16).slice(2, 10);
 
   const agentDefs = params.agent ? loadAgentDefaults(params.agent) : null;
+
   const effectiveModel = params.model ?? agentDefs?.model;
+
   const effectiveTools = params.tools ?? agentDefs?.tools;
   const effectiveSkills = params.skills ?? agentDefs?.skills;
   const effectiveThinking = agentDefs?.thinking;
@@ -1067,6 +1074,7 @@ async function launchSubagent(
       sessionFile: subagentSessionFile,
       launchScriptFile,
       cli: "claude",
+      model: effectiveModel,
       sentinelFile,
       interactive: effectiveInteractive,
       statusState: createStatusState({
